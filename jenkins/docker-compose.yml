@@ -1,0 +1,37 @@
+version: '3'
+
+networks:
+  proxy:
+    external: true
+    
+services:
+  jenkins:
+    build: .
+    image: tailoringexpert/jenkins:${JENKINS_VERSION}
+    hostname: jenkins    
+    container_name: jenkins  
+    restart: unless-stopped
+    environment:
+      - JENKINS_USERNAME=${JENKINS_USERNAME}
+      - JENKINS_PASSWORD=${JENKINS_PASSWORD}
+      - JENKINS_EMAIL=${JENKINS_EMAIL}
+      - JAVA_OPTS=-Dfile.encoding=UTF8
+      - DOCKER_OPTS=-H tcp://172.17.0.1:2375
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   
+    networks:
+      - proxy
+    volumes:
+      - /home/jenkins:/bitnami/jenkins
+      - /home/jenkins/.gnupg:/.gnupg
+      - /home/jenkins/.npm:/.npm
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+    labels:
+      traefik.enable: ${JENKINS_TRAFFIK}
+      traefik.docker.network: proxy
+      traefik.http.services.jenkins.loadbalancer.server.port: 8080
+      traefik.http.routers.jenkins.rule: Host(`${JENKINS_DOMAIN}`)
+      traefik.http.routers.jenkins.entrypoints: https
+      traefik.http.routers.jenkins.tls: true
+      traefik.http.routers.jenkins.tls.certresolver: letsencrypt  
